@@ -31,6 +31,7 @@ button{font:inherit;color:inherit}
 .fl:focus-visible{outline:2px solid var(--indigo);outline-offset:2px}
 .fl .no{grid-row:1/3;font-size:22px;line-height:1;color:var(--indigo);align-self:center}
 .fl b{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#rail .fl .dsc{display:block;font-size:11px;color:#5b6fd8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .fl .sub{font-size:11px;color:var(--sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .fl .win{grid-column:2;display:flex;flex-wrap:wrap;gap:4px;margin-top:5px}
 .fl .win button{width:13px;height:11px;border:0;border-radius:2px;background:#cfd3e2;padding:0;cursor:pointer}
@@ -80,6 +81,7 @@ button{font:inherit;color:inherit}
 #board .rw b{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #board .rw .st{font-size:11px;color:#c9b08a;white-space:nowrap}
 #board .rw .st.on{color:#8fe3ab}
+#board .rw .dsc{grid-column:2/4;font-size:11.5px;color:#c9d3ee;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #board .rw .what{grid-column:2/4;font-size:11.5px;color:#e8d4b0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;gap:6px;align-items:center}
 #board .rw .who{font-size:10px;font-weight:700;color:#c8642f;background:#fdf0e8;border-radius:5px;padding:1px 5px;flex:none}
 #board .rw .who.cx{color:#0e7c66;background:#e2f6f1}
@@ -237,7 +239,7 @@ button{font:inherit;color:inherit}
 .ss .now{font-size:10.5px;color:var(--live);font-weight:600}
 .ss.cur{background:var(--indigo-soft);font-weight:600}
 /* 가리기 모드 — 캡처용: 이름 · 층/세션 이름 · 작업 내용을 흐리게 */
-body.priv :is(.fl:not(.rf):not(.lobby) b,#tname,#mproj,#msess,.al b,.al p,.bub,.nm,.cr .r1 b,.cr .r2,#board .rw b,#board .what,#board .frame b,#board .frame em,#board .rep .rh b,#board .rep .tl,#board .rep ul,#board .rep .files,#pop .t,#tidy .t,#tidy .path,#tidy input){filter:blur(5px);user-select:none}
+body.priv :is(.fl:not(.rf):not(.lobby) b,.fl .dsc,#board .rw .dsc,#tsub,#tname,#mproj,#msess,.al b,.al p,.bub,.nm,.cr .r1 b,.cr .r2,#board .rw b,#board .what,#board .frame b,#board .frame em,#board .rep .rh b,#board .rep .tl,#board .rep ul,#board .rep .files,#pop .t,#tidy .t,#tidy .path,#tidy input){filter:blur(5px);user-select:none}
 #privBtn.on{outline:2px solid #ffb347}
 /* 사용량 — 항상 오른쪽 위 */
 #usage{margin-left:auto;pointer-events:auto;background:rgba(255,255,255,.92);border-radius:12px;padding:6px 10px;display:grid;grid-template-columns:auto auto auto;gap:3px 8px;align-items:center;font-size:11px;color:var(--sub);box-shadow:0 6px 20px rgba(60,60,110,.10)}
@@ -1121,7 +1123,7 @@ function pingFloor(key) {
 //   names: 층 이름 바꿈 / workers: 층별 Claude·Codex 이름 / merge: 층 → 합쳐 들어간 층 / moves: 세션 → 옮겨 간 층 ('new:…' 는 새로 만든 층)
 const load = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) || d; } catch { return d; } };
 const hidden = new Set(load('office.hiddenFloors', []));
-const layout = Object.assign({ names: {}, merge: {}, moves: {}, workers: {}, deco: {} }, load('office.layout', {}));
+const layout = Object.assign({ names: {}, merge: {}, moves: {}, workers: {}, deco: {}, desc: {} }, load('office.layout', {}));
 const saveHidden = () => { try { localStorage.setItem('office.hiddenFloors', JSON.stringify([...hidden])); } catch { } };
 const saveLayout = () => { try { localStorage.setItem('office.layout', JSON.stringify(layout)); } catch { } };
 const rootOf = (k) => { const seen = new Set(); while (layout.merge[k] && !seen.has(k)) { seen.add(k); k = layout.merge[k]; } return k; };
@@ -1168,7 +1170,7 @@ function renderDir() {
     const win = f.sessions.slice(0, 10).map(s => `<button class="${s.active ? 'lit' : s.state ? 'warm' : ''} ${s.key === curKey ? 'cur' : ''} ${s.agent === 'codex' ? 'cx' : ''}" data-k="${esc(s.key)}" title="${s.agent === 'codex' ? 'Codex' : 'Claude'} · ${esc(s.label)} · ${agoTxt(s.mtime)}" aria-label="${esc(s.label)}"></button>`).join('');
     const al = floorAlert.get(f.proj);
     return `<div class="fl ${cur ? 'cur' : ''} ${now - f.mtime > 864e5 ? 'dim' : ''} ${al || ''}" data-n="${f.n}" tabindex="0"><button class="x" title="층 정리 (이름 · 합치기 · 세션 옮기기 · 숨기기)" aria-label="${esc(f.name)} 층 정리">⋯</button><span class="no jua">${fno(f.n)}</span><b>${esc(f.name)}${al ? `<span class="tag">${al === 'ask' ? '🙋 질문' : '⚠ 에러'}</span>` : ''}</b>
-      <span class="sub">세션 ${f.total}개 · ${f.active ? '일하는 중' : agoTxt(f.mtime)}</span><div class="win">${win}</div><span class="car"></span></div>`;
+      ${layout.desc[f.proj] ? `<span class="dsc" title="${esc(layout.desc[f.proj])}">${esc(layout.desc[f.proj])}</span>` : ''}<span class="sub">세션 ${f.total}개 · ${f.active ? '일하는 중' : agoTxt(f.mtime)}</span><div class="win">${win}</div><span class="car"></span></div>`;
   };
   const busyN = SNAP.floors.filter(f => f.active).length;
   const lobby = `<div class="fl lobby ${follow ? 'on' : ''} ${view === 'lobby' ? 'cur' : ''}" data-lobby tabindex="0" title="층별 안내판 보기"><span class="no jua">1F</span><b>로비</b>
@@ -1189,7 +1191,9 @@ function renderDir() {
   $('#sessBtn').style.display = view !== 'office' ? 'none' : '';
   if (view === 'ceo') syncCeo();
   if (view === 'roof') syncRoof();
-  $('#tsub').style.display = 'none'; // 세션 이름(긴 첫 질문)은 안 보여줌 — 세션 ▾ 목록에서 볼 수 있음
+  // 세션 이름(긴 첫 질문)은 안 보여줌 — 세션 ▾ 목록에서 볼 수 있음. 대신 직접 적은 '층 소개'가 있으면 보여줌
+  const dsc = view === 'office' && f ? layout.desc[f.proj] : '';
+  $('#tsub').textContent = dsc || ''; $('#tsub').title = dsc || ''; $('#tsub').style.display = dsc ? '' : 'none';
   $('#sessBtn').textContent = f ? `세션 ${f.total}개 ▾` : '세션 ▾';
   $('#mproj').textContent = s && s.cwd ? s.cwd.replace(/^\/(Users|home)\/[^/]+/, '~') : (f ? f.proj : '-');
   $('#msess').textContent = s ? s.sid.slice(0, 8) : '-';
@@ -1236,7 +1240,7 @@ function renderLobby() {
     const doing = st ? (st.tool ? `${(ROOMS[st.room] || {}).name || ''} · ${st.tool}${st.detail ? ' ' + st.detail : ''}` : (st.idle ? '자리에서 쉬는 중' : '일하는 중')) : esc(s ? s.label : '');
     const who = (on.length ? on : [s]).filter(Boolean).slice(0, 3).map(x => `<span class="who ${x.agent === 'codex' ? 'cx' : ''}">${esc(staff(x.agent === 'codex' ? 'codex' : 'claude', f.proj))}</span>`).join('');
     return `<div class="rw ${f.active ? '' : 'idle'}" data-n="${f.n}" tabindex="0"><span class="no jua">${fno(f.n)}</span><b>${esc(f.name)}</b>
-      <span class="st ${f.active ? 'on' : ''}">${f.active ? '● 일하는 중' : agoTxt(f.mtime)}</span><span class="what">${who}<span>${st ? esc(doing) : doing}</span></span></div>`;
+      ${layout.desc[f.proj] ? `<span class="dsc">${esc(layout.desc[f.proj])}</span>` : ''}<span class="st ${f.active ? 'on' : ''}">${f.active ? '● 일하는 중' : agoTxt(f.mtime)}</span><span class="what">${who}<span>${st ? esc(doing) : doing}</span></span></div>`;
   };
   const up = SNAP.floors.filter(f => f.n > 0).reverse(), down = SNAP.floors.filter(f => f.n < 0);
   const tabs = `<div class="tabs"><button data-tab="dir" class="${lobbyTab === 'dir' ? 'on' : ''}">층 안내</button><button data-tab="work" class="${lobbyTab === 'work' ? 'on' : ''}">출퇴근</button><button data-tab="star" class="${lobbyTab === 'star' ? 'on' : ''}">이달의 직원</button><button data-tab="day" class="${lobbyTab === 'day' ? 'on' : ''}">오늘 요약</button></div>`;
@@ -1354,8 +1358,18 @@ function renderBoss() {
 // ───────── 층 정리 창 ─────────
 let tidyProj = null;
 const floorOf = (k) => ALL.find(F => F.proj === k);
-function openTidy(k) { tidyProj = k; $('#tidyBg').classList.add('open'); renderTidy(); const i = $('#tName'); if (i) i.focus(); }
-function closeTidy() { tidyProj = null; $('#tidyBg').classList.remove('open'); }
+let tidyDraft = null, tidyNote = ''; // 자동 채우기로 만든 초안(저장 전)과 안내 문구
+// 층 소개 초안: 가장 최근 세션부터, 서버가 정한 제목(요약·첫 질문)이 진짜 있는 걸 골라 한 줄로 줄임. 날짜뿐인 제목은 건너뜀
+function suggestDesc(F) {
+  for (const s of F.sessions) {
+    const t = String(s.label || '').replace(/\s+/g, ' ').trim();
+    if (!t || /^\d{1,2}\. \d{1,2}\. /.test(t)) continue;
+    return t.length > 56 ? t.slice(0, 55) + '…' : t;
+  }
+  return '';
+}
+function openTidy(k) { tidyProj = k; tidyDraft = null; tidyNote = ''; $('#tidyBg').classList.add('open'); renderTidy(); const i = $('#tName'); if (i) i.focus(); }
+function closeTidy() { tidyProj = null; tidyDraft = null; tidyNote = ''; $('#tidyBg').classList.remove('open'); }
 function renderTidy() {
   const F = floorOf(tidyProj); if (!F) return closeTidy();
   const others = ALL.filter(o => o !== F);
@@ -1364,6 +1378,8 @@ function renderTidy() {
   $('#tidy').innerHTML = `<header><span class="no jua">${F.n && !hidden.has(F.proj) ? fno(F.n) : '숨김'}</span><h3 class="jua" id="tidyH">층 정리</h3><button data-a="close" aria-label="닫기">×</button></header>
   <div class="bd">
     <div class="row"><span class="lab">층 이름</span><input id="tName" value="${esc(layout.names[F.proj] || '')}" placeholder="${esc(F.orig || '새 층')}" maxlength="40"><button class="btn" data-a="name">바꾸기</button></div>
+    <div class="row"><span class="lab">층 소개</span><input id="tDesc" value="${esc(tidyDraft != null ? tidyDraft : (layout.desc[F.proj] || ''))}" placeholder="이 층에서 하는 일 (예: 교육팀 장부·일지 웹앱)" maxlength="60"><button class="btn" data-a="suggest" title="최근 세션 제목으로 초안을 채워요 (저장은 '적기')">자동 채우기</button><button class="btn" data-a="desc">적기</button></div>
+    ${tidyNote ? `<p class="note">${esc(tidyNote)}</p>` : ''}
     <div class="row"><span class="lab">직원 이름</span><input id="tClaude" value="${esc((layout.workers[F.proj] || {}).claude || '')}" placeholder="Claude" maxlength="12" aria-label="이 층 Claude 이름"><input id="tCodex" value="${esc((layout.workers[F.proj] || {}).codex || '')}" placeholder="Codex" maxlength="12" aria-label="이 층 Codex 이름"><button class="btn" data-a="staff">정하기</button></div>
     <div class="row"><span class="lab">꾸미기</span><select id="tTheme" style="flex:1">${Object.entries(THEMES).map(([k, v]) => `<option value="${k}" ${(layout.deco[F.proj] || {}).theme === k ? 'selected' : ''}>${v.name}</option>`).join('')}</select>
       ${PROPS.map(([k, lab]) => `<label class="chip" style="cursor:pointer;padding-right:9px"><input type="checkbox" data-prop="${k}" ${(layout.deco[F.proj] || {})[k] ? 'checked' : ''}>${lab}</label>`).join('')}</div>
@@ -1375,7 +1391,7 @@ function renderTidy() {
     ${F.total > F.sessions.length ? `<p class="note">오래된 세션 ${F.total - F.sessions.length}개는 목록에 없어요.</p>` : ''}
     ${others.length ? `<h4>이 층을 통째로 다른 층에 합치기</h4><div class="row"><select id="tMerge" style="flex:1"><option value="">층 고르기</option>${others.map(opt).join('')}</select><button class="btn" data-a="merge">합치기</button></div>` : ''}
   </div>
-  <footer><button class="btn" data-a="hide">${hidden.has(F.proj) ? '숨긴 거 풀기' : '이 층 숨기기'}</button><span class="sp"></span><button class="lnk" data-a="reset">모든 층 처음대로</button><button class="btn pri" data-a="close">다 했어요</button></footer>`;
+  <footer><button class="btn" data-a="hide">${hidden.has(F.proj) ? '숨긴 거 풀기' : '이 층 숨기기'}</button><span class="sp"></span><button class="lnk" data-a="fillall" title="소개가 비어 있는 층만 최근 세션 제목으로 채워요">빈 층 모두 자동 채우기</button><button class="lnk" data-a="reset">모든 층 처음대로</button><button class="btn pri" data-a="close">다 했어요</button></footer>`;
 }
 $('#tidyBg').addEventListener('click', (e) => {
   if (e.target.id === 'tidyBg') return closeTidy();
@@ -1384,6 +1400,17 @@ $('#tidyBg').addEventListener('click', (e) => {
   const a = b.dataset.a;
   if (a === 'close') return closeTidy();
   if (a === 'name') { const v = $('#tName').value.trim(); if (v) layout.names[F.proj] = v; else delete layout.names[F.proj]; relayout(); }
+  if (a === 'desc') { const v = $('#tDesc').value.trim(); if (v) layout.desc[F.proj] = v; else delete layout.desc[F.proj]; tidyDraft = null; tidyNote = ''; relayout(); }
+  if (a === 'suggest') { // 칸에만 채움(저장은 '적기'). 이미 적어 둔 소개를 덮어쓰지 않음
+    const v = suggestDesc(F);
+    tidyDraft = v || null; tidyNote = v ? '초안을 채웠어요. 고친 뒤 \'적기\'를 눌러야 저장돼요.' : '참고할 세션 제목이 아직 없어요. 직접 적어 주세요.';
+  }
+  if (a === 'fillall') { // 비어 있는 층만 한꺼번에 채움
+    let n = 0, skip = 0;
+    for (const f of ALL) { if (layout.desc[f.proj]) continue; const v = suggestDesc(f); if (v) { layout.desc[f.proj] = v; n++; } else skip++; }
+    tidyNote = n ? `${n}개 층을 채웠어요${skip ? ` (참고할 제목이 없는 ${skip}개 층은 비워 둠)` : ''}. 층마다 고칠 수 있어요.` : '채울 수 있는 빈 층이 없어요.';
+    if (n) relayout();
+  }
   if (a === 'staff') {
     const c = $('#tClaude').value.trim(), x = $('#tCodex').value.trim();
     if (c || x) layout.workers[F.proj] = Object.assign({}, c && { claude: c }, x && { codex: x }); else delete layout.workers[F.proj];
@@ -1393,7 +1420,7 @@ $('#tidyBg').addEventListener('click', (e) => {
   if (a === 'merge') { const to = $('#tMerge').value; if (!to) return; layout.merge[F.proj] = to; tidyProj = rootOf(to); relayout(); }
   if (a === 'hide') { if (hidden.has(F.proj)) hidden.delete(F.proj); else hidden.add(F.proj); relayout(F.n === curFloorN); }
   if (a === 'reset') { if (!b.dataset.sure) { b.dataset.sure = 1; b.textContent = '정말요? 한 번 더 누르면 처음대로'; return; }
-    layout.names = {}; layout.merge = {}; layout.moves = {}; layout.workers = {}; layout.deco = {}; hidden.clear(); relayout(); }
+    layout.names = {}; layout.merge = {}; layout.moves = {}; layout.workers = {}; layout.deco = {}; layout.desc = {}; hidden.clear(); relayout(); }
   renderTidy();
 });
 $('#tidyBg').addEventListener('change', (e) => {
